@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plataforma Avanzada de Análisis Estadístico</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkbg: '#0f172a',
+                        cardbg: '#1e293b',
+                        cardborder: '#334155'
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- SheetJS (xlsx / csv parsing) -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- Plotly.js -->
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <!-- jStat para distribución t de Student -->
+    <script src="https://cdn.jsdelivr.net/npm/jstat@1.9.6/dist/jstat.min.js"></script>
+    <style>
+        .tab-btn.active {
+            border-bottom: 3px solid #3b82f6;
+            color: #60a5fa;
+            background-color: #1e293b;
+        }
+        /* Custom scrollbar for dark mode */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+    </style>
+</head>
+<body class="bg-darkbg text-slate-200 min-h-screen font-sans">
+    <div class="max-w-7xl mx-auto p-4 sm:p-6">
+        
+        <!-- Header -->
+        <header class="mb-6 bg-cardbg rounded-xl p-6 border border-cardborder shadow-xl flex justify-between items-center flex-wrap gap-4">
+            <div>
+                <h1 class="text-2xl font-bold text-slate-100 flex items-center gap-2">
+                    <span class="text-blue-500">📊</span> Plataforma Avanzada de Análisis Estadístico
+                </h1>
+                <p class="text-sm text-slate-400 mt-1">Análisis univariable, tests de significancia estadística y visión general multivariable en entorno oscuro.</p>
+            </div>
+            <span class="px-3 py-1 bg-blue-900/40 text-blue-400 border border-blue-500/30 rounded-full text-xs font-semibold">Tema Oscuro Activo</span>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <div class="bg-slate-900 rounded-t-xl border border-b-0 border-cardborder flex overflow-x-auto">
+            <button onclick="switchTab('config')" id="tab-btn-config" class="tab-btn active px-6 py-3.5 text-sm font-medium text-slate-400 hover:text-slate-200 transition-all flex items-center gap-2 whitespace-nowrap">
+                🛠️ Configuración
+            </button>
+            <button onclick="switchTab('reporte')" id="tab-btn-reporte" class="tab-btn px-6 py-3.5 text-sm font-medium text-slate-400 hover:text-slate-200 transition-all flex items-center gap-2 whitespace-nowrap">
+                📊 Análisis Individual
+            </button>
+            <button onclick="switchTab('vision')" id="tab-btn-vision" class="tab-btn px-6 py-3.5 text-sm font-medium text-slate-400 hover:text-slate-200 transition-all flex items-center gap-2 whitespace-nowrap">
+                🌐 Visión General Multivariable
+            </button>
+            <button onclick="switchTab('tabla')" id="tab-btn-tabla" class="tab-btn px-6 py-3.5 text-sm font-medium text-slate-400 hover:text-slate-200 transition-all flex items-center gap-2 whitespace-nowrap">
+                📋 Tabla de Datos
+            </button>
+        </div>
+
+        <!-- Tab Contents Container -->
+        <div class="bg-cardbg rounded-b-xl border border-cardborder p-6 shadow-2xl min-h-[500px]">
+            
+            <!-- Tab 0: Configuración -->
+            <div id="tab-config" class="space-y-6">
+                <div class="space-y-5 max-w-3xl">
+                    <!-- Paso 1 -->
+                    <div class="p-5 bg-slate-900/60 rounded-xl border border-cardborder">
+                        <label class="block font-semibold mb-2 text-slate-200 flex items-center gap-2">
+                            <span class="bg-blue-600 text-xs px-2 py-0.5 rounded text-white">Paso 1</span>
+                            Sube tu archivo Excel o CSV para comenzar:
+                        </label>
+                        <input type="file" id="file-input" accept=".xlsx, .xls, .csv" class="block w-full text-sm text-slate-400 file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer bg-slate-800 rounded-lg border border-slate-700" />
+                    </div>
+
+                    <!-- Paso 2 -->
+                    <div class="p-5 bg-slate-900/60 rounded-xl border border-cardborder">
+                        <label class="block font-semibold mb-2 text-slate-200 flex items-center gap-2">
+                            <span class="bg-blue-600 text-xs px-2 py-0.5 rounded text-white">Paso 2</span>
+                            Selecciona la Variable Principal a analizar:
+                        </label>
+                        <select id="column-selector" disabled class="w-full p-3 border border-slate-700 rounded-lg bg-slate-800 text-slate-400 cursor-not-allowed focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all">
+                            <option value="">-- Primero sube un archivo --</option>
+                        </select>
+                    </div>
+
+                    <!-- Paso 3 -->
+                    <div class="p-5 bg-slate-900/60 rounded-xl border border-cardborder">
+                        <label class="block font-semibold mb-2 text-slate-200 flex items-center gap-2">
+                            <span class="bg-blue-600 text-xs px-2 py-0.5 rounded text-white">Paso 3</span>
+                            Ejecuta el procesamiento estadístico e interactivos:
+                        </label>
+                        <button id="calc-btn" disabled onclick="procesarDatos()" class="w-full sm:w-auto px-6 py-3 bg-slate-700 text-slate-400 rounded-lg font-semibold cursor-not-allowed transition-all shadow-md flex items-center justify-center gap-2">
+                            <span>🔄</span> Procesar Datos e Interactivos
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Status Console -->
+                <div id="config-status" class="mt-4 p-4 rounded-xl bg-slate-900 border border-slate-700 text-slate-300 text-sm font-mono flex items-center gap-2">
+                    <span class="inline-block w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse"></span>
+                    <span id="status-text">Esperando que cargues un archivo Excel o CSV...</span>
+                </div>
+            </div>
+
+            <!-- Tab 1: Análisis Individual -->
+            <div id="tab-reporte" class="hidden space-y-6">
+                <div id="reporte-empty" class="text-slate-500 py-16 text-center">
+                    <p class="text-4xl mb-3">📁</p>
+                    <p class="text-lg font-medium">Sube un archivo y presiona 'Procesar Datos e Interactivos' para ver el análisis individual.</p>
+                </div>
+
+                <div id="reporte-content" class="hidden space-y-8">
+                    <div class="flex justify-between items-center border-b border-slate-700 pb-3 flex-wrap gap-2">
+                        <h2 id="reporte-titulo" class="text-xl font-bold text-blue-400"></h2>
+                        <span class="text-xs text-slate-400 bg-slate-800 px-3 py-1 rounded-md border border-slate-700">Gráficos interactivos generados con Plotly</span>
+                    </div>
+                    
+                    <!-- Resumen Estadístico Tabla -->
+                    <div class="overflow-x-auto rounded-xl border border-slate-700 bg-slate-900/50">
+                        <table class="min-w-full divide-y divide-slate-700">
+                            <thead class="bg-slate-800/80">
+                                <tr>
+                                    <th class="px-6 py-3.5 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">Métrica Estadistica</th>
+                                    <th class="px-6 py-3.5 text-left text-xs font-bold text-slate-300 uppercase tracking-wider">Valor Calculado</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-reporte-body" class="divide-y divide-slate-800 text-sm">
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Charts Grid -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-2">
+                        <div class="p-4 bg-slate-900/80 rounded-xl border border-slate-700 shadow-lg">
+                            <div id="chart-hist" class="w-full h-80"></div>
+                        </div>
+                        <div class="p-4 bg-slate-900/80 rounded-xl border border-slate-700 shadow-lg">
+                            <div id="chart-box" class="w-full h-80"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 2: Visión General Multivariable -->
+            <div id="tab-vision" class="hidden space-y-6">
+                <div id="vision-empty" class="text-slate-500 py-16 text-center">
+                    <p class="text-4xl mb-3">🌐</p>
+                    <p class="text-lg font-medium">Sube un archivo para analizar las relaciones e interacciones entre todas las variables numéricas.</p>
+                </div>
+
+                <div id="vision-content" class="hidden space-y-8">
+                    <h2 class="text-xl font-bold text-blue-400 border-b border-slate-700 pb-3">Matriz de Correlación y Resumen Multivariable</h2>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <!-- Heatmap de Correlación -->
+                        <div class="p-4 bg-slate-900/80 rounded-xl border border-slate-700 shadow-lg">
+                            <h3 class="text-sm font-bold text-slate-300 mb-2 text-center">Matriz de Correlación (Pearson)</h3>
+                            <div id="chart-heatmap" class="w-full h-96"></div>
+                        </div>
+                        <!-- Pairwise / Scatter matrix de variables numéricas -->
+                        <div class="p-4 bg-slate-900/80 rounded-xl border border-slate-700 shadow-lg">
+                            <h3 class="text-sm font-bold text-slate-300 mb-2 text-center">Matriz de Dispersión Multivariable</h3>
+                            <div id="chart-splom" class="w-full h-96"></div>
+                        </div>
+                    </div>
+
+                    <!-- Resumen rápido de todas las variables numéricas -->
+                    <div class="space-y-3">
+                        <h3 class="text-md font-bold text-slate-300">Resumen Estadístico Multivariable</h3>
+                        <div class="overflow-x-auto rounded-xl border border-slate-700 bg-slate-900/50">
+                            <table class="min-w-full divide-y divide-slate-700 text-xs">
+                                <thead id="multi-summary-head" class="bg-slate-800"></thead>
+                                <tbody id="multi-summary-body" class="divide-y divide-slate-800"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 3: Tabla de Datos -->
+            <div id="tab-tabla" class="hidden">
+                <div id="tabla-empty" class="text-slate-500 py-16 text-center">
+                    <p class="text-4xl mb-3">📋</p>
+                    <p class="text-lg font-medium">Sube un archivo para ver la hoja de cálculo completa en esta pestaña.</p>
+                </div>
+                <div id="tabla-wrapper" class="hidden overflow-x-auto max-h-[600px] border border-slate-700 rounded-xl">
+                    <table class="min-w-full divide-y divide-slate-700 text-xs text-slate-300">
+                        <thead id="tabla-header" class="bg-slate-800 sticky top-0 font-bold text-slate-200"></thead>
+                        <tbody id="tabla-body" class="bg-slate-900/80 divide-y divide-slate-800"></tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        let dfLoaded = null;
+        let numericColumns = [];
+
+        // Cambiar entre pestañas
+        function switchTab(tabId) {
+            ['config', 'reporte', 'vision', 'tabla'].forEach(id => {
+                document.getElementById(`tab-${id}`).classList.add('hidden');
+                document.getElementById(`tab-btn-${id}`).classList.remove('active');
+            });
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+            document.getElementById(`tab-btn-${tabId}`).classList.add('active');
+
+            // Forzar redimensionamiento de Plotly al visibilizar
+            if (tabId === 'reporte' || tabId === 'vision') {
+                window.dispatchEvent(new Event('resize'));
+            }
+        }
+
+        // Cargar archivo Excel/CSV
+        document.getElementById('file-input').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const statusEl = document.getElementById('status-text');
+            statusEl.innerText = `Procesando archivo: ${file.name}...`;
+
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                try {
+                    const data = new Uint8Array(evt.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    
+                    dfLoaded = XLSX.utils.sheet_to_json(worksheet, { defval: null });
+
+                    if (!dfLoaded || dfLoaded.length === 0) {
+                        statusEl.innerText = "Error: El archivo no contiene datos válidos.";
+                        return;
+                    }
+
+                    // Identificar columnas numéricas
+                    const sampleKeys = Object.keys(dfLoaded[0]);
+                    numericColumns = sampleKeys.filter(col => {
+                        return dfLoaded.some(row => row[col] !== null && row[col] !== "" && !isNaN(Number(row[col])));
+                    });
+
+                    if (numericColumns.length === 0) {
+                        statusEl.innerText = "Error: El archivo no tiene columnas numéricas para analizar.";
+                        return;
+                    }
+
+                    // Actualizar selector
+                    const selector = document.getElementById('column-selector');
+                    selector.innerHTML = '';
+                    numericColumns.forEach(col => {
+                        const opt = document.createElement('option');
+                        opt.value = col;
+                        opt.textContent = col;
+                        selector.appendChild(opt);
+                    });
+
+                    selector.disabled = false;
+                    selector.classList.remove('bg-slate-800', 'text-slate-400', 'cursor-not-allowed');
+                    selector.classList.add('bg-slate-900', 'text-slate-100');
+
+                    const btn = document.getElementById('calc-btn');
+                    btn.disabled = false;
+                    btn.classList.remove('bg-slate-700', 'text-slate-400', 'cursor-not-allowed');
+                    btn.classList.add('bg-emerald-600', 'hover:bg-emerald-500', 'text-white', 'cursor-pointer');
+
+                    statusEl.innerText = `¡Archivo '${file.name}' cargado con éxito! Se detectaron ${numericColumns.length} columnas numéricas.`;
+
+                    // Renderizar tabla completa
+                    renderTablaOriginal(dfLoaded);
+
+                } catch (err) {
+                    statusEl.innerText = `Error al leer el archivo: ${err.message}`;
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        });
+
+        // Renderizar Tabla de Datos
+        function renderTablaOriginal(data) {
+            if (!data || data.length === 0) return;
+
+            const cols = Object.keys(data[0]);
+            const headerEl = document.getElementById('tabla-header');
+            const bodyEl = document.getElementById('tabla-body');
+
+            headerEl.innerHTML = `<tr>${cols.map(c => `<th class="px-4 py-3 text-left font-bold text-slate-300 border-b border-slate-700">${c}</th>`).join('')}</tr>`;
+            bodyEl.innerHTML = data.map(row => {
+                return `<tr class="hover:bg-slate-800/60 transition-colors">${cols.map(c => `<td class="px-4 py-2 border-b border-slate-800 text-slate-300">${row[c] !== null ? row[c] : ''}</td>`).join('')}</tr>`;
+            }).join('');
+
+            document.getElementById('tabla-empty').classList.add('hidden');
+            document.getElementById('tabla-wrapper').classList.remove('hidden');
+        }
+
+        // Funciones Estadísticas Avanzadas
+        function getPercentile(arr, p) {
+            if (arr.length === 0) return 0;
+            const sorted = [...arr].sort((a, b) => a - b);
+            const index = (p / 100) * (sorted.length - 1);
+            const lower = Math.floor(index);
+            const upper = Math.ceil(index);
+            const weight = index - lower;
+            if (upper >= sorted.length) return sorted[lower];
+            return sorted[lower] * (1 - weight) + sorted[upper] * weight;
+        }
+
+        function getMode(arr) {
+            const counts = {};
+            let maxCount = 0;
+            let mode = "N/A";
+            arr.forEach(val => {
+                counts[val] = (counts[val] || 0) + 1;
+                if (counts[val] > maxCount) {
+                    maxCount = counts[val];
+                    mode = val;
+                }
+            });
+            return mode;
+        }
+
+        // Test de una muestra t-student ($H_0: \mu = 0$)
+        function calcOneSampleTTest(arr) {
+            const n = arr.length;
+            if (n < 2) return { pValue: 1.0, stat: 0 };
+            const mean = arr.reduce((a, b) => a + b, 0) / n;
+            const variance = arr.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / (n - 1);
+            const stdErr = Math.sqrt(variance / n);
+            if (stdErr === 0) return { pValue: 1.0, stat: 0 };
+            
+            const tStat = mean / stdErr;
+            const df = n - 1;
+            // Dos colas p-value usando jStat
+            const pValue = 2 * (1 - jStat.studentt.cdf(Math.abs(tStat), df));
+            return { pValue, stat: tStat };
+        }
+
+        // Test de Normalidad aproximado (Jarque-Bera)
+        function calcNormalityTest(arr) {
+            const n = arr.length;
+            if (n < 4) return { pValue: 1.0, isNormal: "Indeterminado" };
+
+            const mean = arr.reduce((a, b) => a + b, 0) / n;
+            const m2 = arr.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / n;
+            const m3 = arr.reduce((a, b) => a + Math.pow(b - mean, 3), 0) / n;
+            const m4 = arr.reduce((a, b) => a + Math.pow(b - mean, 4), 0) / n;
+
+            const skewness = m3 / Math.pow(m2, 1.5);
+            const kurtosis = (m4 / Math.pow(m2, 2)) - 3;
+
+            const jbStat = (n / 6) * (Math.pow(skewness, 2) + (1 / 4) * Math.pow(kurtosis, 2));
+            // p-value aproximado usando Chi-Cuadrado con 2 grados de libertad
+            const pValue = 1 - jStat.chisquare.cdf(jbStat, 2);
+            return {
+                pValue: pValue,
+                isNormal: pValue > 0.05 ? "Sí" : "No"
+            };
+        }
+
+        // Correlación de Pearson
+        function calcPearsonCorrelation(x, y) {
+            const n = x.length;
+            if (n === 0) return 0;
+            const mx = x.reduce((a, b) => a + b, 0) / n;
+            const my = y.reduce((a, b) => a + b, 0) / n;
+
+            let num = 0, denX = 0, denY = 0;
+            for (let i = 0; i < n; i++) {
+                const dx = x[i] - mx;
+                const dy = y[i] - my;
+                num += dx * dy;
+                denX += dx * dx;
+                denY += dy * dy;
+            }
+            const den = Math.sqrt(denX * denY);
+            return den === 0 ? 0 : num / den;
+        }
+
+        // Procesar Datos
+        function procesarDatos() {
+            if (!dfLoaded) return;
+
+            const columna = document.getElementById('column-selector').value;
+            const datosLimpios = dfLoaded.map(r => Number(r[columna])).filter(v => !isNaN(v) && v !== null);
+
+            if (datosLimpios.length === 0) {
+                alert("La columna seleccionada no contiene datos numéricos válidos.");
+                return;
+            }
+
+            const n = datosLimpios.length;
+            const media = datosLimpios.reduce((a, b) => a + b, 0) / n;
+            const mediana = getPercentile(datosLimpios, 50);
+            const moda = getMode(datosLimpios);
+
+            const variance = n > 1 ? datosLimpios.reduce((a, b) => a + Math.pow(b - media, 2), 0) / (n - 1) : 0;
+            const stdDev = Math.sqrt(variance);
+            const cv = media !== 0 ? (stdDev / media) * 100 : 0;
+
+            const q1 = getPercentile(datosLimpios, 25);
+            const q3 = getPercentile(datosLimpios, 75);
+
+            // Tests de Significancia
+            const tTestRes = calcOneSampleTTest(datosLimpios);
+            const normRes = calcNormalityTest(datosLimpios);
+
+            // Renderizar Reporte
+            document.getElementById('reporte-titulo').innerText = `=== REPORTE ESTADÍSTICO: ${columna} ===`;
+
+            const metricas = [
+                ['Media (Promedio)', media.toFixed(4)],
+                ['Mediana (Q2)', mediana.toFixed(4)],
+                ['Moda', moda],
+                ['Desviación Estándar', stdDev.toFixed(4)],
+                ['Coeficiente de Variación', `${cv.toFixed(2)}%`],
+                ['Primer Cuartil (Q1)', q1.toFixed(4)],
+                ['Tercer Cuartil (Q3)', q3.toFixed(4)],
+                ['Total de Muestras', n],
+                ['P-Valor (Diferencia de 0)', tTestRes.pValue.toExponential(4)],
+                ['¿Es Significativo? (p < 0.05)', tTestRes.pValue < 0.05 ? '<span class="text-emerald-400 font-bold">Sí</span>' : '<span class="text-rose-400 font-bold">No</span>'],
+                ['¿Distribución Normal? (Jarque-Bera)', `${normRes.isNormal} (p-val: ${normRes.pValue.toExponential(4)})`]
+            ];
+
+            const tbody = document.getElementById('tabla-reporte-body');
+            tbody.innerHTML = metricas.map(([m, v]) => `
+                <tr class="hover:bg-slate-800/50 transition-colors">
+                    <td class="px-6 py-3 font-semibold text-slate-300 border-b border-slate-800/80">${m}</td>
+                    <td class="px-6 py-3 text-slate-200 border-b border-slate-800/80">${v}</td>
+                </tr>
+            `).join('');
+
+            document.getElementById('reporte-empty').classList.add('hidden');
+            document.getElementById('reporte-content').classList.remove('hidden');
+
+            // Renderizar Gráficos Individuales (Plotly en modo oscuro)
+            renderPlotlyCharts(datosLimpios, columna, media, mediana, q1, q3);
+
+            // Renderizar Visión Multivariable
+            renderMultivariableView();
+
+            // Cambiar a pestaña 1
+            switchTab('reporte');
+        }
+
+        function renderPlotlyCharts(datos, columna, media, mediana, q1, q3) {
+            const darkLayout = {
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(15,23,42,0.6)',
+                font: { color: '#cbd5e1' },
+                margin: { t: 40, r: 20, l: 40, b: 40 }
+            };
+
+            // 1. Histograma con Líneas Verticales
+            const traceHist = {
+                x: datos,
+                type: 'histogram',
+                name: 'Frecuencia',
+                marker: { color: '#3b82f6', opacity: 0.7, line: { color: '#60a5fa', width: 1 } }
+            };
+
+            const layoutHist = {
+                ...darkLayout,
+                title: { text: `<b>Distribución de ${columna}</b>`, font: { size: 14 } },
+                xaxis: { title: columna, gridcolor: '#334155' },
+                yaxis: { title: 'Frecuencia', gridcolor: '#334155' },
+                shapes: [
+                    {
+                        type: 'line', x0: media, x1: media, y0: 0, y1: 1, yref: 'paper',
+                        line: { color: '#ef4444', width: 2, dash: 'dash' }
+                    },
+                    {
+                        type: 'line', x0: mediana, x1: mediana, y0: 0, y1: 1, yref: 'paper',
+                        line: { color: '#f59e0b', width: 2 }
+                    }
+                ],
+                annotations: [
+                    { x: media, y: 1, yref: 'paper', text: `Media: ${media.toFixed(2)}`, showarrow: true, arrowhead: 2, ax: 40, ay: -20, font: { color: '#ef4444' } },
+                    { x: mediana, y: 0.8, yref: 'paper', text: `Mediana: ${mediana.toFixed(2)}`, showarrow: true, arrowhead: 2, ax: -40, ay: -20, font: { color: '#f59e0b' } }
+                ]
+            };
+
+            Plotly.newPlot('chart-hist', [traceHist], layoutHist, { responsive: true, displayModeBar: false });
+
+            // 2. Boxplot estilizado con stripplot (puntos individuales)
+            const traceBox = {
+                x: datos,
+                type: 'box',
+                name: columna,
+                boxpoints: 'all',
+                jitter: 0.3,
+                pointpos: -1.8,
+                marker: { color: '#f43f5e', size: 4 },
+                line: { color: '#38bdf8' },
+                fillcolor: 'rgba(56, 189, 248, 0.2)'
+            };
+
+            const layoutBox = {
+                ...darkLayout,
+                title: { text: `<b>Diagrama de Caja y Dispersión</b>`, font: { size: 14 } },
+                xaxis: { title: columna, gridcolor: '#334155' }
+            };
+
+            Plotly.newPlot('chart-box', [traceBox], layoutBox, { responsive: true, displayModeBar: false });
+        }
+
+        // Visión General Multivariable (Heatmap & Scatter matrix)
+        function renderMultivariableView() {
+            if (numericColumns.length === 0) return;
+
+            document.getElementById('vision-empty').classList.add('hidden');
+            document.getElementById('vision-content').classList.remove('hidden');
+
+            // Extraer vectores de datos para cada columna numérica
+            const dataMap = {};
+            numericColumns.forEach(col => {
+                dataMap[col] = dfLoaded.map(r => Number(r[col])).filter(v => !isNaN(v));
+            });
+
+            // 1. Matriz de Correlación (Heatmap)
+            const zValues = [];
+            for (let i = 0; i < numericColumns.length; i++) {
+                const row = [];
+                for (let j = 0; j < numericColumns.length; j++) {
+                    const colA = numericColumns[i];
+                    const colB = numericColumns[j];
+                    const corr = calcPearsonCorrelation(dataMap[colA], dataMap[colB]);
+                    row.push(corr);
+                }
+                zValues.push(row);
+            }
+
+            const traceHeatmap = {
+                z: zValues,
+                x: numericColumns,
+                y: numericColumns,
+                type: 'heatmap',
+                colorscale: 'Viridis',
+                zmin: -1,
+                zmax: 1
+            };
+
+            const darkLayout = {
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(15,23,42,0.6)',
+                font: { color: '#cbd5e1' },
+                margin: { t: 20, r: 20, l: 60, b: 60 }
+            };
+
+            Plotly.newPlot('chart-heatmap', [traceHeatmap], darkLayout, { responsive: true, displayModeBar: false });
+
+            // 2. Matriz de Dispersión (SPLOM)
+            const splomDimensions = numericColumns.slice(0, 5).map(col => ({
+                label: col,
+                values: dataMap[col]
+            }));
+
+            const traceSplom = {
+                type: 'splom',
+                dimensions: splomDimensions,
+                marker: {
+                    color: '#38bdf8',
+                    size: 5,
+                    opacity: 0.6
+                }
+            };
+
+            const layoutSplom = {
+                ...darkLayout,
+                title: { text: `<b>Splom (Primeras variables)</b>`, font: { size: 12 } }
+            };
+
+            Plotly.newPlot('chart-splom', [traceSplom], layoutSplom, { responsive: true, displayModeBar: false });
+
+            // 3. Tabla Resumen Multivariable
+            const headEl = document.getElementById('multi-summary-head');
+            const bodyEl = document.getElementById('multi-summary-body');
+
+            headEl.innerHTML = `
+                <tr>
+                    <th class="px-4 py-2 text-left text-slate-300">Variable</th>
+                    <th class="px-4 py-2 text-left text-slate-300">Media</th>
+                    <th class="px-4 py-2 text-left text-slate-300">Mediana</th>
+                    <th class="px-4 py-2 text-left text-slate-300">Desv. Est.</th>
+                    <th class="px-4 py-2 text-left text-slate-300">Min</th>
+                    <th class="px-4 py-2 text-left text-slate-300">Max</th>
+                </tr>
+            `;
+
+            bodyEl.innerHTML = numericColumns.map(col => {
+                const vals = dataMap[col];
+                const n = vals.length;
+                if (n === 0) return '';
+                const m = vals.reduce((a, b) => a + b, 0) / n;
+                const med = getPercentile(vals, 50);
+                const v = n > 1 ? vals.reduce((a, b) => a + Math.pow(b - m, 2), 0) / (n - 1) : 0;
+                const sd = Math.sqrt(v);
+                const min = Math.min(...vals);
+                const max = Math.max(...vals);
+
+                return `
+                    <tr class="hover:bg-slate-800/60 transition-colors">
+                        <td class="px-4 py-2 font-semibold text-blue-400">${col}</td>
+                        <td class="px-4 py-2 text-slate-300">${m.toFixed(2)}</td>
+                        <td class="px-4 py-2 text-slate-300">${med.toFixed(2)}</td>
+                        <td class="px-4 py-2 text-slate-300">${sd.toFixed(2)}</td>
